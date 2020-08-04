@@ -28,7 +28,8 @@
 #' right in to methods and computer code you can use fresh out of the
 #' box.*
 #'
-#' The book has been sent to the publisher and will be available in July 2020.
+#' The book has been avaibale in Europe since 23 July 2020, and the
+#' books to other parts of the world are in transit.
 #' 
 #' - [Cambridge University Press page](https://www.cambridge.org/fi/academic/subjects/statistics-probability/statistical-theory-and-methods/regression-and-other-stories)
 #'
@@ -39,16 +40,61 @@
 #' 
 #' -------------
 #'
+#' ### Contents
+#' 
+#' 1. Introduction
+#' 2. Data and measurement
+#' 3. Some basic methods in mathematics and probability
+#' 4. Generative models and statistical inference
+#' 5. Simulation
+#' 6. Background on regression modeling
+#' 7. Linear regression with a single predictor
+#' 8. Fitting regression models
+#' 9. Prediction and Bayesian inference 
+#' 10. Linear regression with multiple predictors
+#' 11. Assumptions, diagnostics, and model evaluation
+#' 12. Transformations
+#' 13. Logistic regression
+#' 14. Working with logistic regression
+#' 15. Other generalized linear models
+#' 16. Design and sample size decisions
+#' 17. Poststratification and missing-data imputation
+#' 18. Causal inference basics and randomized experiments
+#' 19. Causal inference using regression on the treatment variable
+#' 21. More advanced topics in causal inference
+#' 22. Advanced regression and multilevel models
+#'
+#' -------------
+#' 
 #' ## Code and data {.tabset}
+#'
+#'   - The code and data are provided to fully reproduce the examples
+#'     and figurs in the book.  They can be a good way to see what the
+#'     code does.
+#'   - Different people have different styles of code.  The code here
+#'     is not supposed to be a model.  The statistical analyses and
+#'     graphs in the book are intended to be models for good practice,
+#'     but the code here is meant to be simple with minimal dependencies.
+#'   - For learning R programming basics we recommend
+#'     - [Garrett Grolemund, Hands-On Programming with R](https://rstudio-education.github.io/hopr/)
+#'   - For learning basic and advanced plotting using R  we recommend
+#'     - [Kieran Healy, Data Visualization - A practical introduction](https://socviz.co/)
+#'     - [Claus O. Wilke, Fundamentals of Data Visualization](https://serialmentor.com/dataviz/)
+#'     - [Antony Unwin, Graphical Data Analysis with R](http://www.gradaanwr.net/)    - [Hadley Wickham, ggplot2: Elegant Graphics for Data Analysis] (https://ggplot2-book.org/)
+#' 
+#' -------------
 #' 
 #' ### Code and data by chapters<a id="by_chapters"></a>
 #'
-#' The folders below (ending /) point to the code (.R and .Rmd) and
-#' data folders in github, and .html -files point to pretty
-#' notebooks. Most examples have cleaned data in csv file in data
-#' subfolder for easy experimenting. The data subfolders have also the
-#' raw data and *_setup.R file showing how the data cleaning has been
-#' done.
+#'   - The folders below (ending /) point to the code (.R and .Rmd)
+#'     and `data` folders (.csv or .txt) in github, and .html -files
+#'     point to knitted notebooks.
+#'   - Most examples have cleaned data in .csv file in `data` subfolder
+#'     for easy experimenting. For completeness and reproducibility, the
+#'     data subfolders have also the raw data and `*_setup.R` file showing
+#'     how the data pre-processing has been done (to do the exercises
+#'     and follow along with the examples, you don't need to worry about
+#'     the setup code).
 #' 
 #' -------------
 #' 
