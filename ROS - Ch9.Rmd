@@ -360,3 +360,86 @@ se_bayes
 
 ```
 
+
+## 9.5 Priors
+
+Uniform prior distribution
+
+```{r}
+d3 <- stan_glm(vote ~ growth, 
+            data=hibbs,
+            prior_intercept=NULL,
+            prior=NULL,
+            prior_aux=NULL)
+summary(d3)
+```
+
+```{r}
+sims <- as.data.frame(d3) %>%
+  set_names(nm=c("share", "growth","sigma"))
+head(sims)
+```
+
+```{r}
+ggplot(sims, aes(share, growth)) + 
+  geom_point(size=.8, color="darkblue", alpha=.5)
+```
+
+Weakly informative prior
+
+First, let's look at the default priors
+
+```{r}
+summary(d3)
+prior_summary(d3)
+```
+
+The default
+
+```{r}
+d4 <- stan_glm(vote ~ growth,
+               data=hibbs,
+               prior=normal(5,5), 
+               prior_intercept=normal(50,10))
+prior_summary(d4)
+```
+
+```{r}
+summary(d4)
+```
+
+```{r}
+print(d4)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
