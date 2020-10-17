@@ -1,0 +1,445 @@
+---
+title: "Regression and other stories"
+subtitle: "Andrew Gelman, Jennifer Hill, Aki Vehtari"
+author: "Dan Killian notes - Chapter 9"
+date: "August 2020"
+output: 
+  html_document:
+    toc: true
+    toc_depth: '5'
+    toc_float: yes
+---
+
+####
+
+```{r global_options}
+
+# standard figure size and generate clean output
+knitr::opts_chunk$set(fig.width=10, fig.height=8, warning=FALSE, message=FALSE, cache=TRUE, error=T)
+
+```
+
+  
+```{r libraries}
+library(tidyverse)
+library(strengejacke)
+library(psych)
+library(scales)
+library(brms)
+library(rethinking)
+library(rstanarm)
+library(rstantools)
+library(skimr)
+library(knitr)
+library(xlsx)
+library(here)
+library(haven)
+library(showtext)
+library(gfonts)
+```
+
+```{r formatting}
+
+# display to three decimal points, scientific notation displays at around six digits
+options(digits=3, scipen=6)
+
+# requires showtext package
+showtext_auto()
+
+# requires gfonts package
+use_pkg_gfont("open-sans")
+
+# graphic style
+theme_set(theme_bw() + theme(panel.grid.minor.x=element_blank(),
+                             panel.grid.minor.y=element_blank(),
+                             plot.title=element_text(face="bold",size=18, hjust=.5, family = "sans"),
+                             plot.subtitle = element_text(size=16, family="sans"),
+                             plot.caption=element_text(size=12, family="sans"),
+                             axis.title=element_text(size=16, family="sans"),
+                             axis.text=element_text(size=14, family="sans"),    
+                             legend.text=element_text(size=14, family="sans"),
+                             strip.text=element_text(size=14, family="sans"))) 
+
+# for single graphs, I have recently come to like borderless
+nobord <- theme(panel.border=element_blank(),
+                axis.ticks = element_blank())
+
+
+```
+
+## Chapter 9: Prediction and Bayesian Inference
+### 9.1 Propagating uncertainty in inference using posterior simulations
+
+```{r}
+hibbs <- read.table("ElectionsEconomy/data/hibbs.dat", header=T)
+head(hibbs)
+```
+
+
+```{r, results="hide"}
+d1 <- stan_glm(vote ~ growth,
+               data=hibbs)
+```
+
+```{r}
+summary(d1)
+```
+
+```{r}
+sims <- as.matrix(d1)
+head(sims)
+```
+
+```{r}
+med <- apply(sims, 2, median)
+mad_sd <- apply(sims, 2, mad)
+a <- cbind(med, mad_sd)
+a
+```
+
+### Figure 9.1
+
+```{r}
+sims <- data.frame(sims) %>%
+  rename(share=1)
+head(sims)
+```
+
+```{r}
+ggplot(data.frame(sims), aes(x=share)) + 
+  geom_histogram(fill="midnight blue", color="cyan", alpha=.7, bins=20, binwidth=1) +
+  labs(x="Percent vote share (%)",
+       y="",
+       title="Distribution of vote shares") +
+  scale_x_continuous() +
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        axis.title.y=element_text(angle=0, vjust=.5, hjust=1)) +
+  nobord
+```
+
+```{r}
+ggplot(data.frame(sims), aes(x=growth)) + 
+  geom_histogram(fill="midnight blue", color="cyan", alpha=.7, bins=10, binwidth=.5) +
+  labs(x="Growth rate (%)",
+       y="",
+       title="Distribution of economic growth rates") +
+  scale_x_continuous(breaks=0:6) +
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        axis.title.y=element_text(angle=0, vjust=.5, hjust=1)) + 
+  nobord
+```
+
+### Figure 9.2
+
+```{r}
+ggplot(sims, aes(share, growth)) + 
+  geom_point(size=.8, color="darkblue", alpha=.5) +
+  nobord +
+  labs(y="Economic growth (%)",
+       x="Incumbent vote share (%)")
+```
+
+```{r}
+samp <- sample_n(sims, 100) %>%
+  mutate(id=1:100)
+
+ggplot(samp, aes(growth, share)) + 
+  geom_point() + 
+  geom_abline(intercept=samp$id,
+              slope=samp$growth) + 
+  scale_y_continuous(limits=c(40,60),
+                     breaks=seq(40,60,5)) +
+  nobord
+
+```
+
+```{r}
+samp <- sample_n(sims, 100) %>%
+  mutate(id=1:100)
+
+ggplot(sims, aes(growth, share)) + 
+  geom_abline(intercept=sims[1:100,1],
+              slope=sims[1:100,2],
+              size=.1,
+              color="darkblue",
+              alpha=.4) + 
+  geom_abline(intercept=mean(sims[,1]),
+              slope=mean(sims[,2]),
+              size=2,
+              color="maroon",
+              alpha=.8) +
+  scale_y_continuous(limits=c(40,60),
+                     breaks=seq(40,60,5)) +
+  nobord +
+  #geom_point(color="white", size=3)
+  scale_x_continuous(limits=c(-.7, 5),
+                     breaks=0:5)
+
+```
+
+## 9.2 Prediction and uncertainty
+
+After fitting a regression, we can use it to predict a new data point, a set of new data points. We can make three sorts of predictions, in increasing levels of uncertainty: 
+
+- point prediction 
+
+- linear predictor with uncertainty
+
+- predictive distribution of a new observation
+
+### Point prediction
+
+```{r}
+new <- data.frame(growth=2.0)
+y_point_pred <- predict(d1, newdata=new)
+y_point_pred
+```
+
+```{r}
+a_hat <- coef(d1)[1]
+b_hat <- coef(d1)[2]
+y_point_pred2 <- a_hat + b_hat*new
+y_point_pred2
+```
+
+### Linear predictor with uncertainty
+
+```{r}
+y_linpred <- posterior_linpred(d1, newdata=new)
+head(y_linpred)
+```
+
+```{r}
+mean(y_linpred)
+```
+
+```{r}
+a <- posterior_epred(d1, newdata=new)
+mean(a)
+```
+
+
+```{r}
+a <- sims[,1]
+b <- sims[,2]
+y_linpred2 <- a + b*new
+y_linpred2
+```
+
+### Predictive distribution for a new observation
+
+```{r}
+y_pred <- posterior_predict(d1, newdata=new)
+n_sims <- nrow(sims)
+sigma <- sims[,3]
+y_predicted <- as.numeric(a + b*new) + rnorm(n_sims, 0, sigma)
+
+ggplot(data.frame(pred=y_predicted), aes(pred)) + 
+  geom_histogram(fill="cadetblue2", color="blue", alpha=.5) +
+  nobord +
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        axis.title.y=element_text(angle=0, vjust=.5, hjust=1)) +
+  labs(x="Predicted value",
+       y="")
+```
+
+```{r}
+y_pred_med <- median(y_predicted)
+y_pred_mad <- mad(y_predicted)
+win_prob <- mean(y_predicted>50)
+cat("Predicted Clinton percentage of 2-party vote: ", round(y_pred_med,1),", with s.e. ", round(y_pred_mad, 1), "\nPr (Clinton win) = ", round(win_prob,2), sep="")
+```
+
+### Prediction given a range of input values and propogating uncertainty
+
+```{r}
+new_grid <- data.frame(growth=seq(-2,4,.5))
+y_point_pred_grid <- predict(d1, newdata=new_grid)
+y_linpred_grid <- posterior_linpred(d1, newdata=new_grid)
+y_pred_grid <- posterior_predict(d1, newdata=new_grid)
+
+x_new <- rnorm(n_sims, 2,.3)
+y_predicted2 <- rnorm(n_sims, a+b*x_new, sigma)
+```
+
+```{r}
+y_pred_med2 <- median(y_predicted2)
+y_pred_mad2 <- mad(y_predicted2)
+win_prob2 <- mean(y_predicted2>50)
+cat("Predicted Clinton percentage of 2-party vote: ", round(y_pred_med2,1),", with s.e. ", round(y_pred_mad2, 1), "\nPr (Clinton win) = ", round(win_prob2,2), sep="")
+```
+
+### Sampling uncertainty
+
+```{r}
+earnings <- read.csv("Earnings/data/earnings.csv")
+head(earnings)
+```
+
+```{r}
+fit_1 <- stan_glm(weight ~ height, 
+                  data=earnings)
+summary(fit_1)
+```
+
+Center the height variable
+
+```{r}
+earnings$c_height <- earnings$height - 66
+fit_2 <- stan_glm(weight ~ c_height,
+                  data=earnings)
+summary(fit_2)
+```
+
+```{r}
+new <- data.frame(c_height=4)
+y_point_pred_2 <- predict(fit_2, newdata=new)
+y_point_pred_2
+```
+
+```{r}
+y_linpred_2 <- posterior_linpred(fit_2, newdata=new)
+
+dat_y_linpred_2 <- data.frame(x=y_linpred_2) 
+
+names(dat_y_linpred_2)
+
+ggplot(dat_y_linpred_2, aes(X1)) + 
+  geom_histogram(fill="cadetblue2",color="blue", alpha=.5) +
+  nobord +
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        axis.title.y=element_text(angle=0, vjust=.5, hjust=1)) +
+  labs(x="Predicted weight for population of individuals with height of 70",
+       y="")
+```
+
+```{r}
+y_postpred_2 <- posterior_predict(fit_2, newdata=new) %>%
+  as.data.frame %>%
+  set_names(nm="x")
+
+ggplot(y_postpred_2, aes(x)) + 
+  geom_histogram(fill="cadetblue2",color="blue", alpha=.5) +
+  nobord +
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        axis.title.y=element_text(angle=0, vjust=.5, hjust=1)) +
+  labs(x="Predicted weight for any individual with height of 70",
+       y="")
+
+```
+
+## 9.3 Prior information and Bayesian synthesis
+
+```{r}
+theta_hat_prior <- .524
+se_prior <- .041
+n <- 400
+y <- 190
+theta_hat_data <- y/n
+se_data <- sqrt((y/n)*(1-y/n)/n)
+```
+
+```{r}
+theta_hat_bayes <- (theta_hat_prior/se_prior^2 + theta_hat_data/se_data^2)/(1/se_prior^2 + 1/se_data^2)
+theta_hat_bayes
+```
+
+```{r}
+se_bayes <- sqrt(1/(1/se_prior^2 + 1/se_data^2))
+se_bayes
+```
+
+## 9.4 Beauty and sex ratio
+
+```{r}
+
+```
+
+
+## 9.5 Priors
+
+Uniform prior distribution
+
+```{r}
+d3 <- stan_glm(vote ~ growth, 
+            data=hibbs,
+            prior_intercept=NULL,
+            prior=NULL,
+            prior_aux=NULL)
+summary(d3)
+```
+
+```{r}
+sims <- as.data.frame(d3) %>%
+  set_names(nm=c("share", "growth","sigma"))
+head(sims)
+```
+
+```{r}
+ggplot(sims, aes(share, growth)) + 
+  geom_point(size=.8, color="darkblue", alpha=.5)
+```
+
+Weakly informative prior
+
+First, let's look at the default priors
+
+```{r}
+summary(d3)
+prior_summary(d3)
+```
+
+The default
+
+```{r}
+d4 <- stan_glm(vote ~ growth,
+               data=hibbs,
+               prior=normal(5,5), 
+               prior_intercept=normal(50,10))
+prior_summary(d4)
+```
+
+```{r}
+summary(d4)
+```
+
+```{r}
+print(d4)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

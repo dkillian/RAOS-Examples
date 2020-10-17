@@ -1,0 +1,144 @@
+---
+title: "Regression and other stories"
+subtitle: "Andrew Gelman, Jennifer Hill, Aki Vehtari"
+author: "Dan Killian notes - Chapter 12"
+date: "August 2020"
+output: 
+  html_document:
+    toc: true
+    toc_depth: '5'
+    toc_float: yes
+---
+
+#####
+```{r global_options}
+
+# standard figure size and generate clean output
+knitr::opts_chunk$set(fig.width=10, fig.height=8, warning=FALSE, message=FALSE, cache=TRUE, error=T)
+```
+
+  
+```{r libraries}
+library(tidyverse)
+library(strengejacke)
+library(psych)
+library(brms)
+library(skimr)
+library(knitr)
+library(xlsx)
+library(here)
+library(haven)
+library(showtext)
+library(gfonts)
+library(rstan)
+library(rethinking)
+library(rstan)
+library(rstanarm)
+library(tidybayes)
+```
+
+```{r formatting}
+
+# display to three decimal points, scientific notation displays at around six digits
+options(digits=3, scipen=6)
+
+# requires showtext package
+showtext_auto()
+
+# requires gfonts package
+use_pkg_gfont("open-sans")
+
+# graphic style
+theme_set(theme_bw() + theme(panel.grid.minor.x=element_blank(),
+                             panel.grid.minor.y=element_blank(),
+                             plot.title=element_text(face="bold",size=18, hjust=.5, family = "sans"),
+                             plot.subtitle = element_text(size=16, family="sans"),
+                             plot.caption=element_text(size=12, family="sans"),
+                             axis.title=element_text(size=16, family="sans"),
+                             axis.text=element_text(size=14, family="sans"),    
+                             legend.text=element_text(size=14, family="sans"),
+                             strip.text=element_text(size=14, family="sans"))) 
+
+# for single graphs, I have recently come to like borderless
+nobord <- theme(panel.border=element_blank(),
+                axis.ticks = element_blank())
+
+
+```
+
+### Chapter 12: Transformations and regression
+
+#### 12.1 Linear Transformations
+
+##### An ugly regression
+
+```{r }
+earnings <- read.csv("../Earnings/data/earnings.csv")
+head(earnings)
+```
+
+```{r}
+e1 <- stan_glm(earn ~ height,
+               data=earnings,
+               refresh=0)
+e1
+```
+
+How to interpret this? It's the expected earnings for a person with a height of zero, which is obviously nonsensical. Let's transform variables so that the coefficients have practical meaning to what we're tyring to estimate. 
+
+Let's start by standardizing the predictor. 
+
+##### Standardizing predictors using z-scores
+
+```{r}
+earnings <- earnings %>%
+  mutate(height_std = scale(height))
+
+describe(earnings[,c(1,16)])
+```
+
+The value of zero represents 67 inches, and the standard deviation of one represents a change in height of 3.8 inches. 
+
+```{r}
+e2 <- stan_glm(earn ~ height_std,
+               data=earnings,
+               refresh=0)
+e2
+```
+
+Now we can interpret the intercept value of 21k USD as earnings at the mean height value of 67 inches. Note that in a multiple regression, the intercept would be the mean value of the outcome, when all predictors are at their mean values (if all predictors are standardized). 
+
+A one standard deviation increase in height of 3.8 inches predicts an increase in earnings of 6,100 USD. 
+
+An interesting statement in the text I hadn't seen before: 
+
+> A difference of one standard deviation on the input scale is a meaningful difference in that it roughly reflects a typical difference between the mean and a randomly drawn observation. 
+
+Another interesting note is that the text distinguishes between large and small sample sizes, in that there must be enough observations to support all predictor variables at their mean values. (Not sure I understand this point.) In the event of a small sample size, the text recommends standardizing using an externally specified population distribution or other externally specified reasonable scales. I don't know what this means!
+
+##### Standardizing using an externally specified population distribution
+
+No empirical example is given, but consider a school test scored 0-100 where 4th graders scored a mean of 55 and standard deviation of 18. The scores of all 4th graders could then be rescaled according to these parameters. 
+
+##### Centering and standardizing interactions
+
+Consider the following multiple regression with an interaction.
+
+```{r }
+kidiq <- read.csv("../KidIQ/data/kidiq.csv")
+head(kidiq)
+```
+
+```{r}
+k1 <- stan_glm(kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq,
+               data=kidiq,
+               refresh=0)
+k1
+```
+
+
+
+
+
+##### Dividing by two standard deviations rather than one
+

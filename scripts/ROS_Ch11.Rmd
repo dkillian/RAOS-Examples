@@ -1,0 +1,171 @@
+---
+title: "Regression and other stories"
+subtitle: "Andrew Gelman, Jennifer Hill, Aki Vehtari"
+author: "Dan Killian notes - Chapter 11"
+date: "August 2020"
+output: 
+  html_document:
+    toc: true
+    toc_depth: '5'
+    toc_float: yes
+---
+
+####
+```{r global_options, echo=F}
+
+# standard figure size and generate clean output
+knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.align='center', warning=FALSE, message=FALSE, cache=TRUE, error=T)
+
+```
+
+  
+```{r libraries, echo=F}
+
+library(tidyverse)
+library(strengejacke)
+library(psych)
+library(scales)
+library(brms)
+library(rethinking)
+library(rstanarm)
+library(rstantools)
+library(skimr)
+library(knitr)
+library(xlsx)
+library(here)
+library(haven)
+library(showtext)
+library(gfonts)
+
+```
+
+```{r formatting, echo=F}
+
+# display to three decimal points, scientific notation displays at around six digits
+options(digits=3, scipen=6)
+
+# requires showtext package
+showtext_auto()
+
+# requires gfonts package
+use_pkg_gfont("open-sans")
+
+# graphic style
+theme_set(theme_bw() + theme(panel.grid.minor.x=element_blank(),
+                             panel.grid.minor.y=element_blank(),
+                             plot.title=element_text(face="bold",size=18, hjust=.5, family = "sans"),
+                             plot.subtitle = element_text(size=16, family="sans"),
+                             plot.caption=element_text(size=12, family="sans"),
+                             axis.title=element_text(size=16, family="sans"),
+                             axis.text=element_text(size=14, family="sans"),    
+                             legend.text=element_text(size=14, family="sans"),
+                             strip.text=element_text(size=14, family="sans"))) 
+
+# for single graphs, I have recently come to like borderless
+nobord <- theme(panel.border=element_blank(),
+                axis.ticks = element_blank())
+
+
+```
+### Chapter 11: Assumptions, diagnostics, and model evaluation
+
+#### 11.2 Plotting the data and fitted model
+
+Let's return to the children's test score example
+
+```{r }
+kidiq <- read.csv("../KidIQ/data/kidiq.csv")
+head(kidiq)
+```
+
+```{r}
+fit_2 <- stan_glm(kid_score ~ mom_iq, 
+                    data=kidiq)
+```
+
+
+```{r}
+ggplot(kidiq, aes(mom_iq, kid_score)) +
+  geom_point(size=.8, color="dodgerblue2", alpha=.6) + 
+  stat_smooth(method="lm", color="dodgerblue") +
+  nobord +
+  scale_y_continuous(limits=c(0,160))
+
+  
+```
+
+```{r}
+fit_3 <- stan_glm(kid_score ~ mom_hs + mom_iq,
+                  data=kidiq)
+summary(fit_3, digits=3)
+```
+
+
+```{r}
+ggplot(kidiq, aes(mom_iq, kid_score, color=as.factor(mom_hs))) + 
+  geom_point(alpha=.5, size=.9) + 
+  stat_smooth(se=F, method="lm") + 
+  scale_y_continuous(limits=c(0,160),
+                     breaks=seq(0,150,25)) +
+  scale_color_manual(values=c("maroon","darkblue"),
+                     labels=c("No","Yes")) +
+  labs(color="Graduated from\nhigh school") +
+  nobord
+```
+
+
+```{r}
+fit_4 <- stan_glm(kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq,
+                  data=kidiq)
+summary(fit_4, digits=3)
+```
+
+##### Displaying uncertainty in the fitted regression
+
+```{r}
+sims_2 <- as.matrix(fit_2)
+n_sims_2 <- nrow(sims_2)
+beta_hat_2 <- apply(sims_2, 2,median)
+beta_hat_2l <- lapply(sims_2, median)
+beta_hat_2m <- map(sims_2, median)
+samp <- sample_n(data.frame(sims_2[,1:2]), 30) %>%
+  set_names(nm=c("kid_score","mom_iq"))
+samp
+```
+
+
+```{r}
+ggplot(kidiq, aes(mom_iq, kid_score)) + 
+  geom_point(color="dodgerblue2", alpha=.6, size=.9) +
+  geom_abline(aes(intercept=kid_score, slope = mom_iq), data=samp, color="dodgerblue", alpha=.9)
+
+  geom_abline(aes(intercept=sims_2[,1], slope = sims_2[,2]), data=data.frame(sims_2), color="dodgerblue", alpha=.1)
+  
+
+```
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
